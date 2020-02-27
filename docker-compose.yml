@@ -1,0 +1,112 @@
+version: "3.3"
+
+services: 
+    # db
+    db: 
+        image: mysql:5.7
+        volumes:
+            - ./db:/docker-entrypoint-initdb.d
+        restart: always
+        ports:
+            - '8081:3306'
+        environment:
+            MYSQL_ROOT_PASSWORD: admin
+            MYSQL_DATABASE: football_club
+            # MYSQL_USER: admin
+            # MYSQL_PASSWORD: admin
+        networks:
+            - fcapp
+    # graylog
+    mongo:
+        image: mongo:3
+        networks:
+            - fcapp
+        volumes:
+            - mongo_data:/data/db
+    elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.8.5
+        environment:
+            - http.host=0.0.0.0
+            - transport.host=localhost
+            - network.host=0.0.0.0
+            - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+        ulimits:
+            memlock:
+                soft: -1
+                hard: -1
+        networks:
+            - fcapp
+        volumes:
+            - es_data:/usr/share/elasticsearch/data
+    graylog:
+        image: graylog/graylog:3.2
+        volumes:
+          - graylog_journal:/usr/share/graylog/data/journal
+        environment:
+            # CHANGE ME (must be at least 16 characters)!
+            - GRAYLOG_PASSWORD_SECRET=zaq12wsxcde34rfv
+            # Password: admin
+            - GRAYLOG_ROOT_PASSWORD_SHA2=8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+            - GRAYLOG_HTTP_EXTERNAL_URI=http://127.0.0.1:9000/
+        networks:
+            - fcapp
+        links:
+            - mongo
+            - elasticsearch    
+        depends_on:
+            - mongo
+            - elasticsearch
+        ports:
+            # Graylog web interface and REST API
+            - 9000:9000
+            # Syslog TCP
+            - 1514:1514
+            # Syslog UDP
+            - 1514:1514/udp
+            # GELF TCP
+            - 12201:12201
+            # GELF UDP
+            - 12201:12201/udp
+    # api        
+    api: 
+        build: "./api"
+        volumes:
+            - ./api:/football_club/api
+        ports: 
+            - 8082:3000
+        depends_on: 
+            - db
+        networks:
+            - fcapp
+    # panel
+    panel:
+        build: "./panel"
+        volumes: 
+            - ./panel:/football_club/panel
+        ports:
+            - 8083:4200
+        depends_on: 
+            - api    
+        networks: 
+            - fcapp
+    # website
+    website:
+        build: "./website"
+        volumes: 
+            - ./website:/football_club/website
+        ports:
+            - 8084:3000
+        depends_on: 
+            - api    
+        networks: 
+            - fcapp
+    # app
+
+networks:
+    fcapp:
+
+volumes:
+    db_data: {}
+    mongo_data:
+    es_data:
+    graylog_journal:

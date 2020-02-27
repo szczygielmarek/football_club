@@ -1,0 +1,31 @@
+g# OS
+.DS_Store
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# IDE - VSCode
+.vscode/
+
+# project files
+api/*
+!api/.dockerignore
+!api/Dockerfile
+
+app/*
+!app/.dockerignore
+!app/Dockerfile
+
+panel/*
+!panel/.dockerignore
+!panel/Dockerfile
+
+website/*
+!website/.dockerignore
+!website/Dockerfile
